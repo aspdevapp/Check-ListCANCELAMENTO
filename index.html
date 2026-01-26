@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Checklist para E-mail</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 700px; margin: 20px auto; padding: 20px; background-color: #f0f2f5; color: #333; }
+        .container { background-color: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-top: 0; }
+        
+        /* Estilos do Formulário */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
+        /* Adicionei uma transição suave para a cor da borda */
+        input[type="text"], input[type="email"], input[type="date"], textarea, select { 
+            width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: #3498db; }
+        textarea { resize: vertical; }
+
+        /* Classe para erro de validação */
+        .input-erro { border-color: #e74c3c !important; box-shadow: 0 0 5px rgba(231, 76, 60, 0.3); }
+        
+        /* Botões */
+        .btn-gerar { 
+            margin-top: 20px; padding: 15px; width: 100%; background-color: #3498db; color: white; 
+            border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background-color 0.2s; 
+        }
+        .btn-gerar:hover { background-color: #2980b9; }
+
+        .btn-copiar {
+            margin-top: 15px; padding: 12px; width: 100%; background-color: #27ae60; color: white;
+            border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; display: none; /* Oculto inicialmente */
+        }
+        .btn-copiar:hover { background-color: #219150; }
+
+        /* Área de Resultado e Imagem */
+        #resultado-container { margin-top: 40px; display: none; border-top: 2px dashed #ccc; padding-top: 30px; text-align: center;}
+        .instrucao-copiar { background-color: #e8f4fd; color: #1976d2; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #b3e5fc; font-size: 14px;}
+        #imagem-final-container canvas { box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 4px; max-width: 100%; height: auto; margin-bottom: 10px;}
+
+        /* ESTILO DO LAYOUT QUE SERÁ TRANSFORMADO EM IMAGEM (Oculto visualmente na página) */
+        #area-para-imagem {
+            position: fixed; top: -9999px; left: -9999px; /* Tira da tela, mas mantem renderizado */
+            width: 600px; background: white; padding: 30px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif;
+        }
+        .resumo-titulo { color: #d9534f; margin-top: 0; border-bottom: 2px solid #d9534f; padding-bottom: 10px; }
+        .tabela-resumo { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .tabela-resumo td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+        .tb-label { font-weight: bold; color: #555; width: 40%; background-color: #f9f9f9; }
+        .tb-valor { color: #000; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Ferramenta de Diagnóstico de Cancelamento</h2>
+    <p style="color: #777; font-size: 14px; margin-bottom: 20px;">* Todos os campos são obrigatórios.</p>
+    
+    <div class="form-group">
+        <label for="email">E-mail para envio do termo: *</label>
+        <input type="email" id="email" placeholder="ex: cliente@empresa.com.br">
+    </div>
+
+    <div class="form-group" style="display: flex; gap: 20px;">
+        <div style="flex: 1;">
+            <label for="data">Data para cancelamento: *</label>
+            <input type="date" id="data">
+        </div>
+        <div style="flex: 1;">
+            <label for="ciente">Cliente ciente da nova fatura? *</label>
+            <select id="ciente">
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="descricao">Descrição da solicitação de cancelamento: *</label>
+        <textarea id="descricao" rows="3" placeholder="Descreva brevemente o pedido..."></textarea>
+    </div>
+
+    <div class="form-group">
+        <label for="motivo_cancelamento">MOTIVO DO CANCELAMENTO (Resumido): *</label>
+        <select id="motivo_cancelamento" name="motivo_cancelamento" class="form-control">
+            <option value="">Selecione uma opção...</option>
+            <option value="1">1 - CLIENTE INADIMPLENTE NA TELECHEQUE</option>
+            <option value="2">2 - (T) MIGRACAO PARA OUTRO SERVICO TELECHEQUE</option>
+            <option value="3">3 - (T) CLIENTE NAO CONCORDA COM RENEGOCIACAO</option>
+            <option value="4">4 - (T) IMPLANTACAO NAO REALIZADA PELA TELECHEQUE</option>
+            <option value="6">6 - (C) QUALIDADE DO SERVICO INSATISFATORIA</option>
+            <option value="7">7 - (C) QUALIDADE DO ATENDIMENTO INSATISFATORIA</option>
+            <option value="8">8 - (C) MIGRACAO PARA CONCORRENCIA POR PRECO</option>
+            <option value="9">9 - PROBLEMAS ECONÔMICOS OU FINANCEIROS</option>
+            <option value="10">10 - ENCERRAMENTO DA ATIVIDADE COMERCIAL</option>
+            <option value="11">11 - (C) CLIENTE NAO CONCORDOU COM IMPLANTACAO</option>
+            <option value="13">13 - (C) PROBLEMAS COM RESSARCIMENTO</option>
+            <option value="14">14 - BAIXAS VENDAS COM CHEQUE</option>
+            <option value="20">20 - SUSPENSO AUTOMATICAMENTE POR ATRASO PAGAMENTO</option>
+            <option value="24">24 - MIGRACAO PARA GOODCHECK</option>
+            <option value="26">26 - FALTA DE ESCLARECIMENTO NA VENDAS</option>
+            <option value="27">27 - CLI NAO CONCORDOU IMPLANT- REPENSOU SOBRE PRODUTO</option>
+            <option value="28">28 - NAO ACATAMENTO DE CHEQUES-CONDICOES COMERCIAIS</option>
+            <option value="29">29 - MIGRACAO PARA CONCORRENCIA-POR PRODUTO</option>
+            <option value="34">34 - (C) OUTROS MOTIVOS</option>
+            <option value="35">35 - CANCELAMENTO DE USUÁRIO</option>
+            <option value="37">37 - (C) RISCO ELEVADO</option>
+            <option value="38">38 - ERRO DE GESTÃO DO PÓS-VENDAS</option>
+            <option value="39">39 - (C) AJUSTE ALTO</option>
+            <option value="41">41 - REDUÇÃO DE CUSTOS DO CLIENTE</option>
+            <option value="42">42 - (C) VOLUME CONT NAO EH ADEQUADO POTENCIAL CLIENTE</option>
+            <option value="45">45 - CLIENTE NÃO TRABALHA MAIS COM CHEQUE</option>
+            <option value="46">46 - MIGRAÇÃO PARA CONCORRÊNCIA POR QUALIDADE</option>
+            <option value="50">50 - EMPRESA VENDIDA SEM NOVA NEGOCIAÇÃO</option>
+            <option value="52">52 - (C) VENDA DA EMPRESA - MUDANCA SOCIETARIA</option>
+            <option value="53">53 - (C) NAO ATENDEMOS AS ESPECTATIVAS DO CLIENTE</option>
+            <option value="54">54 - (C) FALTA DE ACOMPANHAMENTO ADEQUADO</option>
+            <option value="56">56 - (C) ALTO INDICE DE NEGADOS</option>
+            <option value="57">57 - (C) CLIENTE COM DIRECIONAMENTO DE CHEQUES</option>
+            <option value="58">58 - NÃO ACATAMENTO DE CH SOMADO AO AJUSTE DE TAXA</option>
+            <option value="60">60 - (C) MIGRACAO P/ CONCORRENCIA - CARTAO/FINANCEIRA</option>
+            <option value="64">64 - DESENTENDIMENTO INTERNO ENTRE OS SÓCIOS</option>
+            <option value="66">66 - (C) SOLICITACAO DE DE X PARA</option>
+            <option value="67">67 - PROBLEMAS COM MEIO DE ACESSO</option>
+            <option value="71">71 - (T) CLIENTE COM BAIXA RENTABILIDADE</option>
+            <option value="72">72 - CONTRATO C/ MC NEGATIVA - CLIENTE NÃO ACEITOU RENEGOCIAÇÃO</option>
+            <option value="74">74 - CLIENTE NÃO ACEITA RESSARCIMENTO PARCIAL - SUST/ROUB</option>
+            <option value="75">75 - CLIENTE N ACEITA AJUSTE/RISCO ALTO</option>
+            <option value="76">76 - CLIENTE NÃO ACEITA OMC</option>
+            <option value="77">77 - CLIENTE NÃO ACEITA PRAZO DE ACATAMENTO</option>
+            <option value="80">80 - MIGRAÇÃO PARA CONCORRÊNCIA POR PREÇO</option>
+            <option value="81">81 - CLIENTE NÃO ACEITOU IMPLANTAÇÃO - PROB.NA VENDA</option>
+            <option value="83">83 - MIGRAÇÃO PARA FINANCEIRA</option>
+            <option value="84">84 - DEMORA NO ATENDIMENTO DO POS-VENDAS</option>
+            <option value="86">86 - EXPECTATIVA NAO ATENDIDA - VENDAS</option>
+            <option value="100">100 - CLIENTE INADIMPLENTE NA MULTI-CRÉDITO</option>
+            <option value="101">101 - CLIENTE COM BAIXAS VENDAS NO CREDIÁRIO</option>
+            <option value="102">102 - CLIENTE DEIXOU DE TRABALHAR COM CREDIÁRIO</option>
+            <option value="104">104 - CLIENTE SEM PERFIL</option>
+            <option value="105">105 - NÃO ACATAMENTO DE DUPLICATAS/ COND. COMERCIAIS</option>
+            <option value="111">111 - CANCELADO POR FRAUDE CLIENTE</option>
+            <option value="112">112 - EXPECTATIVA NÃO ATENDIDA - PRODUTO</option>
+            <option value="113">113 - CREDIARIO MUITO BUROCRATICO</option>
+            <option value="115">115 - TAXAS ALTAS</option>
+            <option value="118">118 - PROBLEMAS NA CADEIA DO CHEQUE</option>
+            <option value="120">120 - FALTA DE ESTRUTURA - EQUIPAMENTO</option>
+            <option value="122">122 - CUSTO VERSUS BENEFICIO</option>
+            <option value="123">123 - PROCESSO DO CHEQUE MUITO BUROCRATICO</option>
+            <option value="124">124 - CONSUMIDOR NAO ADERENTE AO MEIO DE PAGAM CHEQUE</option>
+            <option value="125">125 - QUEDA NAS VENDAS GERAL SITUACAO DE MERCADO</option>
+            <option value="126">126 - CLIENTE IMPLANTOU CREDIARIO PROPRIO</option>
+            <option value="128">128 - FALTA DE ANTECIPAÇÃO</option>
+            <option value="130">130 - ERRO DE VENDAS</option>
+            <option value="131">131 - CLIENTE NÃO ACEITA TARIFAS TAP/TGO</option>
+            <option value="132">132 - CONSUMIDOR NÃO ADERENTE AO MEIO DE PAGAMENTO CREDIÁRIO</option>
+            <option value="133">133 - PROBLEMAS COM INTEGRAÇAO BANCÁRIA</option>
+            <option value="134">134 - LIMITE DE CREDITO BAIXO PARA O CONSUMIDOR</option>
+            <option value="135">135 - MIGRAÇÃO PARA SERVIÇO METTADADOS</option>
+            <option value="904">904 - CANCELADO A PEDIDO DO CLIENTE</option>
+            <option value="909">909 - FALTA DE ANTECIPAÇÃO</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="renegociacao">Por que a renegociação não deu certo? *</label>
+        <textarea id="renegociacao" rows="3" placeholder="Detalhe os pontos de entrave..."></textarea>
+    </div>
+
+    <div class="form-group">
+        <label for="propostas">Propostas para reverter o resultado? *</label>
+        <textarea id="propostas" rows="3" placeholder="O que poderia ser feito futuramente..."></textarea>
+    </div>
+
+    <button class="btn-gerar" onclick="gerarImagem()">Gerar Imagem</button>
+
+    <div id="resultado-container">
+        <div id="imagem-final-container"></div>
+        <button id="btn-copiar" class="btn-copiar" onclick="copiarImagem()">Copiar Imagem</button>
+        <div class="instrucao-copiar">
+            Ou clique com botão direito e selecione "Copiar Imagem".
+        </div>
+    </div>
+</div>
+
+<div id="area-para-imagem">
+    <h3 class="resumo-titulo">Diagnóstico de Cancelamento</h3>
+    <table class="tabela-resumo">
+        <tr>
+            <td class="tb-label">E-mail envio termo:</td>
+            <td class="tb-valor" id="res-email"></td>
+        </tr>
+        <tr>
+            <td class="tb-label">Data Cancelamento:</td>
+            <td class="tb-valor" id="res-data"></td>
+        </tr>
+         <tr>
+            <td class="tb-label">Ciente Nova Fatura?</td>
+            <td class="tb-valor" id="res-ciente"></td>
+        </tr>
+        <tr>
+            <td class="tb-label">Descrição Solicitação:</td>
+            <td class="tb-valor" id="res-descricao"></td>
+        </tr>
+        <tr>
+            <td class="tb-label" style="color:#d9534f;">MOTIVO CANCELAMENTO:</td>
+            <td class="tb-valor" id="res-motivo" style="font-weight:bold;"></td>
+        </tr>
+        <tr>
+            <td class="tb-label">Por que renegociação falhou?</td>
+            <td class="tb-valor" id="res-renegociacao"></td>
+        </tr>
+        <tr>
+            <td class="tb-label">Propostas de Reversão:</td>
+            <td class="tb-valor" id="res-propostas"></td>
+        </tr>
+    </table>
+</div>
+
+<script>
+    // Variável global para armazenar o canvas gerado
+    let canvasGlobal = null;
+
+    // NOVA FUNÇÃO: Valida se os campos estão preenchidos
+    function validarFormulario() {
+        const idsObrigatorios = [
+            'email', 
+            'data', 
+            'ciente', 
+            'descricao', 
+            'motivo_cancelamento', 
+            'renegociacao', 
+            'propostas'
+        ];
+        
+        let formularioValido = true;
+        let primeiroCampoInvalido = null;
+
+        idsObrigatorios.forEach(id => {
+            const campo = document.getElementById(id);
+            // Remove a classe de erro inicialmente
+            campo.classList.remove('input-erro');
+            
+            // Verifica se está vazio (trim remove espaços em branco extras)
+            if (!campo.value || campo.value.trim() === "") {
+                formularioValido = false;
+                campo.classList.add('input-erro'); // Adiciona borda vermelha
+                
+                // Guarda o primeiro campo com erro para focar nele depois
+                if (primeiroCampoInvalido === null) {
+                    primeiroCampoInvalido = campo;
+                }
+            }
+        });
+
+        if (!formularioValido) {
+            alert("Por favor, preencha todos os campos obrigatórios (marcados com *) antes de gerar a imagem.");
+            if (primeiroCampoInvalido) {
+                primeiroCampoInvalido.focus(); // Leva o cursor para o primeiro erro
+            }
+        }
+
+        return formularioValido;
+    }
+
+
+    function gerarImagem() {
+        // AJUSTE: Executa a validação antes de tudo. Se falhar, para a função.
+        if (!validarFormulario()) {
+            return; 
+        }
+
+        // 1. Coleta os dados (agora sabemos que eles existem)
+        const email = document.getElementById('email').value;
+        let dataFormatada = "";
+        const dataInput = document.getElementById('data').value;
+        if(dataInput) {
+             const [ano, mes, dia] = dataInput.split('-');
+             dataFormatada = `${dia}/${mes}/${ano}`;
+        }
+        const ciente = document.getElementById('ciente').value;
+        const descricao = document.getElementById('descricao').value;
+        
+        const motivoSelect = document.getElementById('motivo_cancelamento');
+        // Pega o texto da opção selecionada
+        const motivoTexto = motivoSelect.options[motivoSelect.selectedIndex].text;
+
+        const renegociacao = document.getElementById('renegociacao').value;
+        const propostas = document.getElementById('propostas').value;
+
+        // 2. Preenche o template oculto
+        document.getElementById('res-email').textContent = email;
+        document.getElementById('res-data').textContent = dataFormatada;
+        document.getElementById('res-ciente').textContent = ciente;
+        document.getElementById('res-descricao').innerText = descricao;
+        document.getElementById('res-motivo').textContent = motivoTexto;
+        document.getElementById('res-renegociacao').innerText = renegociacao;
+        document.getElementById('res-propostas').innerText = propostas;
+
+        // 3. Mostra o container
+        const resultadoContainer = document.getElementById('resultado-container');
+        const imgContainer = document.getElementById('imagem-final-container');
+        const btnCopiar = document.getElementById('btn-copiar');
+        
+        resultadoContainer.style.display = 'block';
+        btnCopiar.style.display = 'none'; // Esconde botão copiar até terminar
+        imgContainer.innerHTML = 'Gerando imagem... aguarde.';
+
+        // 4. Gera a imagem (scale 1 para reduzir tamanho em 50%)
+        html2canvas(document.querySelector("#area-para-imagem"), {
+            scale: 1 
+        }).then(canvas => {
+            canvasGlobal = canvas; // Salva na variável global
+            imgContainer.innerHTML = '';
+            imgContainer.appendChild(canvas);
+            
+            // Mostra o botão copiar
+            btnCopiar.style.display = 'block';
+            
+            resultadoContainer.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
+
+    // Função para copiar imagem
+    function copiarImagem() {
+        if (!canvasGlobal) return;
+
+        canvasGlobal.toBlob(function(blob) {
+            try {
+                const item = new ClipboardItem({ "image/png": blob });
+                navigator.clipboard.write([item]).then(() => {
+                    const btn = document.getElementById('btn-copiar');
+                    const textoOriginal = btn.innerText;
+                    btn.innerText = "Copiado com Sucesso!";
+                    btn.style.backgroundColor = "#2ecc71";
+                    
+                    setTimeout(() => {
+                        btn.innerText = textoOriginal;
+                        btn.style.backgroundColor = "#27ae60";
+                    }, 2000);
+                }).catch(err => {
+                    alert("Não foi possível copiar automaticamente. Por favor, clique com o botão direito na imagem e selecione 'Copiar'.");
+                    console.error("Erro ao copiar: ", err);
+                });
+            } catch (e) {
+                alert("Seu navegador não suporta cópia automática de imagens. Use o botão direito do mouse.");
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
