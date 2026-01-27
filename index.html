@@ -41,26 +41,34 @@
         .instrucao-copiar { background-color: #e8f4fd; color: #1976d2; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #b3e5fc; font-size: 14px;}
         #imagem-final-container canvas { box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 4px; max-width: 100%; height: auto; margin-bottom: 10px;}
 
-        /* --- CORREÇÃO DEFINITIVA DO CSS --- */
+        /* --- CSS CORRIGIDO E MELHORADO --- */
         
         /* 1. Criamos um "cofre" invisível */
         #wrapper-oculto {
             height: 0;
-            overflow: hidden; /* Corta tudo que estiver dentro */
-            position: absolute; /* Tira do fluxo da página principal */
+            overflow: hidden; 
+            position: absolute; 
             width: 0;
+            left: -9999px; /* Garantia extra para não aparecer barra de rolagem */
         }
 
-        /* 2. O layout da imagem fica "normal" dentro do cofre */
+        /* 2. O layout da imagem com correções de texto */
         #area-para-imagem {
             width: 600px; 
-            background: white; /* Fundo branco obrigatório para evitar transparência */
+            background: white; 
             padding: 30px; 
             border: 1px solid #e0e0e0; 
             font-family: Arial, sans-serif;
-            /* Não usamos mais position fixed/absolute aqui dentro */
+            
+            /* --- CORREÇÃO DO ESPAÇAMENTO DE TEXTO --- */
+            /* Isso força o html2canvas a desenhar o texto exatamente como é, sem tentar 'adivinhar' o kerning */
+            text-rendering: auto;
+            letter-spacing: normal;
+            font-variant-ligatures: none;
+            font-feature-settings: normal;
+            word-spacing: normal;
+            /* ---------------------------------------- */
         }
-        /* ---------------------------------- */
 
         .resumo-titulo { color: #d9534f; margin-top: 0; border-bottom: 2px solid #d9534f; padding-bottom: 10px; }
         .tabela-resumo { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
@@ -325,12 +333,10 @@
         btnCopiar.style.display = 'none'; 
         imgContainer.innerHTML = 'Gerando imagem... aguarde.';
 
-        // --- CORREÇÃO JS FINAL ---
-        // html2canvas vai renderizar o que está dentro do "wrapper-oculto"
-        // como se fosse um elemento visível, mas a div wrapper esconde ele com overflow: hidden
+        // 4. Gera a imagem
         html2canvas(document.querySelector("#area-para-imagem"), {
             scale: 1,
-            backgroundColor: "#ffffff", // Força fundo branco
+            backgroundColor: "#ffffff",
             useCORS: true,
             allowTaint: true
         }).then(canvas => {
