@@ -20,7 +20,6 @@
         input:focus, textarea:focus, select:focus { outline: none; border-color: #3498db; }
         textarea { resize: vertical; }
 
-        /* Classe para erro de validação */
         .input-erro { border-color: #e74c3c !important; box-shadow: 0 0 5px rgba(231, 76, 60, 0.3); }
         
         /* Botões */
@@ -30,52 +29,39 @@
         }
         .btn-gerar:hover { background-color: #2980b9; }
 
-        .btn-copiar {
-            margin-top: 15px; padding: 12px; width: 100%; background-color: #27ae60; color: white;
-            border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; display: none; /* Oculto inicialmente */
+        .btn-acao {
+            margin-top: 10px; padding: 12px; width: 100%; color: white;
+            border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; 
         }
+        
+        .btn-copiar { background-color: #27ae60; }
         .btn-copiar:hover { background-color: #219150; }
 
-        /* Área de Resultado e Imagem */
+        .btn-email { background-color: #e67e22; display: none; } 
+        .btn-email:hover { background-color: #d35400; }
+
+        /* Área de Resultado */
         #resultado-container { margin-top: 40px; display: none; border-top: 2px dashed #ccc; padding-top: 30px; text-align: center;}
         .instrucao-copiar { background-color: #e8f4fd; color: #1976d2; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #b3e5fc; font-size: 14px;}
         #imagem-final-container canvas { box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 4px; max-width: 100%; height: auto; margin-bottom: 10px;}
 
-        /* --- CSS CORRIGIDO E MELHORADO --- */
-        #wrapper-oculto {
-            height: 0;
-            overflow: hidden; 
-            position: absolute; 
-            width: 0;
-            left: -9999px; 
-        }
-
+        /* --- CSS Oculto e Correções --- */
+        #wrapper-oculto { height: 0; overflow: hidden; position: absolute; width: 0; left: -9999px; }
         #area-para-imagem {
-            width: 600px; 
-            background: white; 
-            padding: 30px; 
-            border: 1px solid #e0e0e0; 
-            font-family: Arial, sans-serif;
-            
-            /* Correção de texto */
-            text-rendering: auto;
-            letter-spacing: normal;
-            font-variant-ligatures: none;
-            font-feature-settings: normal;
-            word-spacing: normal;
+            width: 600px; background: white; padding: 30px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif;
+            text-rendering: auto; letter-spacing: normal; font-variant-ligatures: none; font-feature-settings: normal; word-spacing: normal;
         }
-
         .resumo-titulo { color: #d9534f; margin-top: 0; border-bottom: 2px solid #d9534f; padding-bottom: 10px; }
         .tabela-resumo { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
         .tabela-resumo td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: top; }
         .tb-label { font-weight: bold; color: #555; width: 40%; background-color: #f9f9f9; }
         .tb-valor { color: #000; }
-
-        /* Estilo da imagem anexada dentro do layout oculto */
         .container-anexo { margin-top: 20px; border-top: 2px dashed #ccc; padding-top: 15px; text-align: center; display: none; }
-        /* AJUSTE CSS: Removi max-height fixo para evitar distorção se a imagem for muito alta, mantendo proporção */
         .container-anexo img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .titulo-anexo { font-weight: bold; color: #555; margin-bottom: 10px; display: block; text-align: left;}
+        
+        .botoes-container { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .botoes-container button { flex: 1; min-width: 200px; }
     </style>
 </head>
 <body>
@@ -84,6 +70,11 @@
     <h2>Ferramenta de Diagnóstico de Cancelamento</h2>
     <p style="color: #777; font-size: 14px; margin-bottom: 20px;">* Todos os campos são obrigatórios.</p>
     
+    <div class="form-group">
+        <label for="cod_razao">Código - Razão Social: * <small style="font-weight:normal; color:#888;">(Mínimo 6 dígitos)</small></label>
+        <input type="text" id="cod_razao" placeholder="AAAA00 - MINHA EMPRESA LTDA" minlength="6" oninput="this.value = this.value.toUpperCase()">
+    </div>
+
     <div class="form-group">
         <label for="email">E-mail para envio do termo: *</label>
         <input type="email" id="email" placeholder="ex: cliente@empresa.com.br">
@@ -208,9 +199,14 @@
 
     <div id="resultado-container">
         <div id="imagem-final-container"></div>
-        <button id="btn-copiar" class="btn-copiar" onclick="copiarImagem()">Copiar Imagem</button>
+        
+        <div class="botoes-container">
+            <button id="btn-copiar" class="btn-acao btn-copiar" onclick="copiarImagem()">Copiar Imagem</button>
+            <button id="btn-email" class="btn-acao btn-email" onclick="prepararEmail()">Abrir E-mail e Colar</button>
+        </div>
+        
         <div class="instrucao-copiar">
-            Ou clique com botão direito e selecione "Copiar Imagem".
+            <strong>Dica:</strong> Clique em "Abrir E-mail" para abrir o Outlook/App e depois pressione <strong>Ctrl+V</strong>.
         </div>
     </div>
 </div>
@@ -219,6 +215,10 @@
     <div id="area-para-imagem">
         <h3 class="resumo-titulo">Diagnóstico de Cancelamento</h3>
         <table class="tabela-resumo">
+            <tr>
+                <td class="tb-label">Cód - Razão Social:</td>
+                <td class="tb-valor" id="res-cod-razao"></td>
+            </tr>
             <tr>
                 <td class="tb-label">E-mail envio termo:</td>
                 <td class="tb-valor" id="res-email"></td>
@@ -257,11 +257,26 @@
 </div>
 
 <script>
-    // Variável global para armazenar o canvas gerado
     let canvasGlobal = null;
 
-    // --- NOVA LÓGICA DE UPLOAD ---
-    // Escuta quando o usuário seleciona um arquivo
+    // --- MÁSCARA E VALIDAÇÃO DE CÓDIGO ---
+    document.getElementById('cod_razao').addEventListener('input', function(e) {
+        let v = e.target.value.toUpperCase(); 
+        
+        if (e.inputType !== 'deleteContentBackward') {
+            if (v.length > 6 && !v.includes(' - ')) {
+                let codigo = v.substring(0, 6);
+                let resto = v.substring(6);
+                v = codigo + ' - ' + resto;
+            }
+            else if (v.length === 6) {
+                v = v + ' - ';
+            }
+        }
+        
+        e.target.value = v;
+    });
+
     document.getElementById('upload-imagem').addEventListener('change', function(e) {
         const file = e.target.files[0];
         const containerAnexo = document.getElementById('container-anexo');
@@ -269,34 +284,19 @@
 
         if (file) {
             const reader = new FileReader();
-            
             reader.onload = function(event) {
-                // Quando terminar de ler o arquivo, joga no src da imagem oculta
                 imgPreview.src = event.target.result;
-                containerAnexo.style.display = 'block'; // Mostra a div de anexo
+                containerAnexo.style.display = 'block';
             }
-            
-            reader.readAsDataURL(file); // Lê o arquivo como URL base64
+            reader.readAsDataURL(file);
         } else {
-            // Se o usuário cancelar ou limpar o campo
             imgPreview.src = "";
             containerAnexo.style.display = 'none';
         }
     });
-    // -----------------------------
 
-    // Função: Valida se os campos estão preenchidos
     function validarFormulario() {
-        const idsObrigatorios = [
-            'email', 
-            'data', 
-            'ciente', 
-            'descricao', 
-            'motivo_cancelamento', 
-            'renegociacao', 
-            'propostas'
-        ];
-        
+        const idsObrigatorios = ['cod_razao', 'email', 'data', 'ciente', 'descricao', 'motivo_cancelamento', 'renegociacao', 'propostas'];
         let formularioValido = true;
         let primeiroCampoInvalido = null;
 
@@ -304,32 +304,51 @@
             const campo = document.getElementById(id);
             campo.classList.remove('input-erro');
             
+            // Verificação de vazio
             if (!campo.value || campo.value.trim() === "") {
                 formularioValido = false;
                 campo.classList.add('input-erro'); 
-                
-                if (primeiroCampoInvalido === null) {
-                    primeiroCampoInvalido = campo;
+                if (primeiroCampoInvalido === null) primeiroCampoInvalido = campo;
+            }
+            
+            // Verificação Específica para Código - Razão Social
+            if (id === 'cod_razao') {
+                if (campo.value.length < 6) {
+                    formularioValido = false;
+                    campo.classList.add('input-erro');
+                    if (primeiroCampoInvalido === null) primeiroCampoInvalido = campo;
+                    alert("O Código deve possuir no mínimo 6 caracteres antes do nome da empresa.");
+                    return; 
+                }
+            }
+
+            // NOVA VERIFICAÇÃO DE EMAIL
+            if (id === 'email' && campo.value.trim() !== "") {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(campo.value)) {
+                    formularioValido = false;
+                    campo.classList.add('input-erro');
+                    if (primeiroCampoInvalido === null) primeiroCampoInvalido = campo;
+                    alert("Por favor, insira um endereço de e-mail válido (ex: nome@dominio.com).");
+                    return;
                 }
             }
         });
 
-        if (!formularioValido) {
-            alert("Por favor, preencha todos os campos obrigatórios (marcados com *) antes de gerar a imagem.");
-            if (primeiroCampoInvalido) {
-                primeiroCampoInvalido.focus();
-            }
+        if (!formularioValido && !primeiroCampoInvalido) {
+            alert("Por favor, preencha todos os campos obrigatórios.");
+            if (primeiroCampoInvalido) primeiroCampoInvalido.focus();
+        } else if (primeiroCampoInvalido) {
+             primeiroCampoInvalido.focus();
         }
-
+        
         return formularioValido;
     }
 
     function gerarImagem() {
-        if (!validarFormulario()) {
-            return; 
-        }
+        if (!validarFormulario()) return;
 
-        // 1. Coleta os dados
+        const codRazao = document.getElementById('cod_razao').value.toUpperCase();
         const email = document.getElementById('email').value;
         let dataFormatada = "";
         const dataInput = document.getElementById('data').value;
@@ -337,48 +356,41 @@
              const [ano, mes, dia] = dataInput.split('-');
              dataFormatada = `${dia}/${mes}/${ano}`;
         }
-        const ciente = document.getElementById('ciente').value;
-        const descricao = document.getElementById('descricao').value;
         
-        const motivoSelect = document.getElementById('motivo_cancelamento');
-        const motivoTexto = motivoSelect.options[motivoSelect.selectedIndex].text;
-
-        const renegociacao = document.getElementById('renegociacao').value;
-        const propostas = document.getElementById('propostas').value;
-
-        // 2. Preenche o template oculto
+        document.getElementById('res-cod-razao').textContent = codRazao;
         document.getElementById('res-email').textContent = email;
         document.getElementById('res-data').textContent = dataFormatada;
-        document.getElementById('res-ciente').textContent = ciente;
-        document.getElementById('res-descricao').innerText = descricao;
-        document.getElementById('res-motivo').textContent = motivoTexto;
-        document.getElementById('res-renegociacao').innerText = renegociacao;
-        document.getElementById('res-propostas').innerText = propostas;
+        document.getElementById('res-ciente').textContent = document.getElementById('ciente').value;
+        document.getElementById('res-descricao').innerText = document.getElementById('descricao').value;
+        const motivoSelect = document.getElementById('motivo_cancelamento');
+        document.getElementById('res-motivo').textContent = motivoSelect.options[motivoSelect.selectedIndex].text;
+        document.getElementById('res-renegociacao').innerText = document.getElementById('renegociacao').value;
+        document.getElementById('res-propostas').innerText = document.getElementById('propostas').value;
 
-        // 3. Mostra o container
         const resultadoContainer = document.getElementById('resultado-container');
         const imgContainer = document.getElementById('imagem-final-container');
         const btnCopiar = document.getElementById('btn-copiar');
+        const btnEmail = document.getElementById('btn-email');
         
         resultadoContainer.style.display = 'block';
         btnCopiar.style.display = 'none'; 
+        btnEmail.style.display = 'none';
         imgContainer.innerHTML = 'Gerando imagem de alta qualidade... aguarde.';
 
-        // 4. Gera a imagem (SCALE AUMENTADO PARA 2 PARA MELHORAR QUALIDADE)
         html2canvas(document.querySelector("#area-para-imagem"), {
-            scale: 2, // <--- AQUI ESTÁ A MUDANÇA PARA ALTA RESOLUÇÃO
+            scale: 2,
             backgroundColor: "#ffffff",
             useCORS: true,
             allowTaint: true
         }).then(canvas => {
             canvasGlobal = canvas;
             imgContainer.innerHTML = '';
-            // Ajusta o estilo do canvas no resultado para não ficar gigante na tela
             canvas.style.width = '100%';
             canvas.style.height = 'auto';
             imgContainer.appendChild(canvas);
             
             btnCopiar.style.display = 'block';
+            btnEmail.style.display = 'block'; 
             
             resultadoContainer.scrollIntoView({ behavior: 'smooth' });
         });
@@ -386,28 +398,39 @@
 
     function copiarImagem() {
         if (!canvasGlobal) return;
-
         canvasGlobal.toBlob(function(blob) {
             try {
                 const item = new ClipboardItem({ "image/png": blob });
                 navigator.clipboard.write([item]).then(() => {
                     const btn = document.getElementById('btn-copiar');
                     const textoOriginal = btn.innerText;
-                    btn.innerText = "Copiado com Sucesso!";
+                    btn.innerText = "Copiado! (Ctrl+V)";
                     btn.style.backgroundColor = "#2ecc71";
-                    
-                    setTimeout(() => {
-                        btn.innerText = textoOriginal;
-                        btn.style.backgroundColor = "#27ae60";
-                    }, 2000);
-                }).catch(err => {
-                    alert("Não foi possível copiar automaticamente. Por favor, clique com o botão direito na imagem e selecione 'Copiar'.");
-                    console.error("Erro ao copiar: ", err);
+                    setTimeout(() => { btn.innerText = textoOriginal; btn.style.backgroundColor = "#27ae60"; }, 2000);
                 });
-            } catch (e) {
-                alert("Seu navegador não suporta cópia automática de imagens. Use o botão direito do mouse.");
-            }
+            } catch (e) { alert("Use o botão direito para copiar."); }
         });
+    }
+
+    function prepararEmail() {
+        copiarImagem();
+        alert("Imagem copiada para a área de transferência!\n\nAgora o seu programa de e-mail será aberto. Clique no corpo da mensagem e pressione Ctrl + V para colar a imagem.");
+
+        const codRazao = document.getElementById('cod_razao').value.toUpperCase(); 
+        const motivoSelect = document.getElementById('motivo_cancelamento');
+        let motivoTexto = motivoSelect.options[motivoSelect.selectedIndex].text;
+        
+        let assuntoTexto = `Diagnóstico de Cancelamento - ${codRazao} - ${motivoTexto}`;
+        const assunto = encodeURIComponent(assuntoTexto.toUpperCase());
+        
+        // CORPO LIMPO SEM A FRASE DE INSTRUÇÃO
+        const corpo = encodeURIComponent(
+            "Olá,\n\n" +
+            "Segue em anexo o diagnóstico de cancelamento do cliente: " + codRazao + "\n\n" +
+            "Atenciosamente,"
+        );
+
+        window.location.href = `mailto:?subject=${assunto}&body=${corpo}`;
     }
 </script>
 
