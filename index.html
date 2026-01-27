@@ -73,7 +73,8 @@
 
         /* Estilo da imagem anexada dentro do layout oculto */
         .container-anexo { margin-top: 20px; border-top: 2px dashed #ccc; padding-top: 15px; text-align: center; display: none; }
-        .container-anexo img { max-width: 100%; max-height: 400px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        /* AJUSTE CSS: Removi max-height fixo para evitar distorção se a imagem for muito alta, mantendo proporção */
+        .container-anexo img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .titulo-anexo { font-weight: bold; color: #555; margin-bottom: 10px; display: block; text-align: left;}
     </style>
 </head>
@@ -199,7 +200,7 @@
     </div>
 
     <div class="form-group" style="border-top: 1px solid #eee; padding-top: 20px;">
-        <label for="upload-imagem">Registro de Visita dos ultimos 90 dias</label>
+        <label for="upload-imagem">Registro de Visita dos ultimos 120 dias</label>
         <input type="file" id="upload-imagem" accept="image/*">
     </div>
 
@@ -249,7 +250,7 @@
         </table>
         
         <div id="container-anexo" class="container-anexo">
-            <span class="titulo-anexo">Registro de Visita (90 dias):</span>
+            <span class="titulo-anexo">Registro de Visita (120 dias):</span>
             <img id="img-anexo-preview" src="" alt="Imagem Anexada">
         </div>
     </div>
@@ -361,17 +362,20 @@
         
         resultadoContainer.style.display = 'block';
         btnCopiar.style.display = 'none'; 
-        imgContainer.innerHTML = 'Gerando imagem... aguarde.';
+        imgContainer.innerHTML = 'Gerando imagem de alta qualidade... aguarde.';
 
-        // 4. Gera a imagem
+        // 4. Gera a imagem (SCALE AUMENTADO PARA 2 PARA MELHORAR QUALIDADE)
         html2canvas(document.querySelector("#area-para-imagem"), {
-            scale: 1,
+            scale: 2, // <--- AQUI ESTÁ A MUDANÇA PARA ALTA RESOLUÇÃO
             backgroundColor: "#ffffff",
             useCORS: true,
             allowTaint: true
         }).then(canvas => {
             canvasGlobal = canvas;
             imgContainer.innerHTML = '';
+            // Ajusta o estilo do canvas no resultado para não ficar gigante na tela
+            canvas.style.width = '100%';
+            canvas.style.height = 'auto';
             imgContainer.appendChild(canvas);
             
             btnCopiar.style.display = 'block';
