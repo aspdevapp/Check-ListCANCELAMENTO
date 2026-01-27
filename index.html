@@ -14,7 +14,7 @@
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
         
-        input[type="text"], input[type="email"], input[type="date"], textarea, select { 
+        input[type="text"], input[type="email"], input[type="date"], textarea, select, input[type="file"] { 
             width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; transition: border-color 0.3s, box-shadow 0.3s;
         }
         input:focus, textarea:focus, select:focus { outline: none; border-color: #3498db; }
@@ -42,17 +42,14 @@
         #imagem-final-container canvas { box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 4px; max-width: 100%; height: auto; margin-bottom: 10px;}
 
         /* --- CSS CORRIGIDO E MELHORADO --- */
-        
-        /* 1. Criamos um "cofre" invisível */
         #wrapper-oculto {
             height: 0;
             overflow: hidden; 
             position: absolute; 
             width: 0;
-            left: -9999px; /* Garantia extra para não aparecer barra de rolagem */
+            left: -9999px; 
         }
 
-        /* 2. O layout da imagem com correções de texto */
         #area-para-imagem {
             width: 600px; 
             background: white; 
@@ -60,14 +57,12 @@
             border: 1px solid #e0e0e0; 
             font-family: Arial, sans-serif;
             
-            /* --- CORREÇÃO DO ESPAÇAMENTO DE TEXTO --- */
-            /* Isso força o html2canvas a desenhar o texto exatamente como é, sem tentar 'adivinhar' o kerning */
+            /* Correção de texto */
             text-rendering: auto;
             letter-spacing: normal;
             font-variant-ligatures: none;
             font-feature-settings: normal;
             word-spacing: normal;
-            /* ---------------------------------------- */
         }
 
         .resumo-titulo { color: #d9534f; margin-top: 0; border-bottom: 2px solid #d9534f; padding-bottom: 10px; }
@@ -75,6 +70,11 @@
         .tabela-resumo td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: top; }
         .tb-label { font-weight: bold; color: #555; width: 40%; background-color: #f9f9f9; }
         .tb-valor { color: #000; }
+
+        /* Estilo da imagem anexada dentro do layout oculto */
+        .container-anexo { margin-top: 20px; border-top: 2px dashed #ccc; padding-top: 15px; text-align: center; display: none; }
+        .container-anexo img { max-width: 100%; max-height: 400px; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .titulo-anexo { font-weight: bold; color: #555; margin-bottom: 10px; display: block; text-align: left;}
     </style>
 </head>
 <body>
@@ -198,6 +198,11 @@
         <textarea id="propostas" rows="3" placeholder="Quais ações foram feitas para tentar reverter a intenção de cancelamento do contrato..."></textarea>
     </div>
 
+    <div class="form-group" style="border-top: 1px solid #eee; padding-top: 20px;">
+        <label for="upload-imagem">Registro de Visita dos ultimos 90 dias</label>
+        <input type="file" id="upload-imagem" accept="image/*">
+    </div>
+
     <button class="btn-gerar" onclick="gerarImagem()">Gerar Imagem</button>
 
     <div id="resultado-container">
@@ -242,12 +247,42 @@
                 <td class="tb-valor" id="res-propostas"></td>
             </tr>
         </table>
+        
+        <div id="container-anexo" class="container-anexo">
+            <span class="titulo-anexo">Registro de Visita (90 dias):</span>
+            <img id="img-anexo-preview" src="" alt="Imagem Anexada">
+        </div>
     </div>
 </div>
 
 <script>
     // Variável global para armazenar o canvas gerado
     let canvasGlobal = null;
+
+    // --- NOVA LÓGICA DE UPLOAD ---
+    // Escuta quando o usuário seleciona um arquivo
+    document.getElementById('upload-imagem').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const containerAnexo = document.getElementById('container-anexo');
+        const imgPreview = document.getElementById('img-anexo-preview');
+
+        if (file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                // Quando terminar de ler o arquivo, joga no src da imagem oculta
+                imgPreview.src = event.target.result;
+                containerAnexo.style.display = 'block'; // Mostra a div de anexo
+            }
+            
+            reader.readAsDataURL(file); // Lê o arquivo como URL base64
+        } else {
+            // Se o usuário cancelar ou limpar o campo
+            imgPreview.src = "";
+            containerAnexo.style.display = 'none';
+        }
+    });
+    // -----------------------------
 
     // Função: Valida se os campos estão preenchidos
     function validarFormulario() {
@@ -266,15 +301,12 @@
 
         idsObrigatorios.forEach(id => {
             const campo = document.getElementById(id);
-            // Remove a classe de erro inicialmente
             campo.classList.remove('input-erro');
             
-            // Verifica se está vazio (trim remove espaços em branco extras)
             if (!campo.value || campo.value.trim() === "") {
                 formularioValido = false;
-                campo.classList.add('input-erro'); // Adiciona borda vermelha
+                campo.classList.add('input-erro'); 
                 
-                // Guarda o primeiro campo com erro para focar nele depois
                 if (primeiroCampoInvalido === null) {
                     primeiroCampoInvalido = campo;
                 }
@@ -284,16 +316,14 @@
         if (!formularioValido) {
             alert("Por favor, preencha todos os campos obrigatórios (marcados com *) antes de gerar a imagem.");
             if (primeiroCampoInvalido) {
-                primeiroCampoInvalido.focus(); // Leva o cursor para o primeiro erro
+                primeiroCampoInvalido.focus();
             }
         }
 
         return formularioValido;
     }
 
-
     function gerarImagem() {
-        // Validação
         if (!validarFormulario()) {
             return; 
         }
@@ -350,7 +380,6 @@
         });
     }
 
-    // Função para copiar imagem
     function copiarImagem() {
         if (!canvasGlobal) return;
 
