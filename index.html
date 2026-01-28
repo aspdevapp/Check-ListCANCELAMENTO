@@ -2,82 +2,107 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Checklist</title>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=Promise%2CObject.assign%2CString.prototype.includes"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Checklist para E-mail</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 15px; background-color: #f0f2f5; color: #333; overflow-x: hidden;}
-        /* Ajuste para caber na barra lateral estreita do Outlook */
-        .container { background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; box-sizing: border-box;}
-        h2 { font-size: 18px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 700px; margin: 20px auto; padding: 20px; background-color: #f0f2f5; color: #333; }
+        .container { background-color: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-top: 0; }
         
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600; color: #555; }
+        /* Estilos do Formulário */
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
         
-        input, textarea, select { 
-            width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; 
+        input[type="text"], input[type="email"], input[type="date"], textarea, select, input[type="file"] { 
+            width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; transition: border-color 0.3s, box-shadow 0.3s;
         }
-        textarea { resize: vertical; min-height: 60px; }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: #3498db; }
+        textarea { resize: vertical; }
 
-        .input-erro { border-color: #e74c3c !important; background-color: #fff5f5; }
+        .input-erro { border-color: #e74c3c !important; box-shadow: 0 0 5px rgba(231, 76, 60, 0.3); }
         
-        button { 
-            width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white;
+        /* Botões */
+        .btn-gerar { 
+            margin-top: 20px; padding: 15px; width: 100%; background-color: #3498db; color: white; 
+            border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background-color 0.2s; 
         }
-        .btn-gerar { background-color: #3498db; }
-        .btn-copiar { background-color: #27ae60; display: none; }
-        .btn-email { background-color: #e67e22; display: none; }
+        .btn-gerar:hover { background-color: #2980b9; }
 
-        #imagem-final-container { margin-top: 20px; text-align: center; border: 1px dashed #ccc; padding: 10px; display: none;}
-        #imagem-final-container canvas { max-width: 100%; height: auto; }
-
-        /* CSS Oculto */
-        #wrapper-oculto { position: absolute; left: -9999px; top: 0; }
-        #area-para-imagem { width: 600px; background: white; padding: 30px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif; }
+        .btn-acao {
+            margin-top: 10px; padding: 12px; width: 100%; color: white;
+            border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; 
+        }
         
-        .tabela-resumo { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .tabela-resumo td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; font-size: 14px;}
+        .btn-copiar { background-color: #27ae60; }
+        .btn-copiar:hover { background-color: #219150; }
+
+        .btn-email { background-color: #e67e22; display: none; } 
+        .btn-email:hover { background-color: #d35400; }
+
+        /* Área de Resultado */
+        #resultado-container { margin-top: 40px; display: none; border-top: 2px dashed #ccc; padding-top: 30px; text-align: center;}
+        .instrucao-copiar { background-color: #e8f4fd; color: #1976d2; padding: 10px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #b3e5fc; font-size: 14px;}
+        #imagem-final-container canvas { box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 4px; max-width: 100%; height: auto; margin-bottom: 10px;}
+
+        /* --- CSS Oculto e Correções --- */
+        #wrapper-oculto { height: 0; overflow: hidden; position: absolute; width: 0; left: -9999px; }
+        #area-para-imagem {
+            width: 600px; background: white; padding: 30px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif;
+            text-rendering: auto; letter-spacing: normal; font-variant-ligatures: none; font-feature-settings: normal; word-spacing: normal;
+        }
+        .resumo-titulo { color: #d9534f; margin-top: 0; border-bottom: 2px solid #d9534f; padding-bottom: 10px; }
+        .tabela-resumo { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+        .tabela-resumo td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: top; }
         .tb-label { font-weight: bold; color: #555; width: 40%; background-color: #f9f9f9; }
+        .tb-valor { color: #000; }
+        .container-anexo { margin-top: 20px; border-top: 2px dashed #ccc; padding-top: 15px; text-align: center; display: none; }
+        .container-anexo img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .titulo-anexo { font-weight: bold; color: #555; margin-bottom: 10px; display: block; text-align: left;}
+        
+        .botoes-container { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .botoes-container button { flex: 1; min-width: 200px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Checklist Cancelamento</h2>
+    <h2>Ferramenta de Diagnóstico de Cancelamento</h2>
+    <p style="color: #777; font-size: 14px; margin-bottom: 20px;">* Todos os campos são obrigatórios.</p>
     
     <div class="form-group">
-        <label>Código - Razão Social: * (Min. 6)</label>
-        <input type="text" id="cod_razao" placeholder="AAAA00 - EMPRESA" maxlength="60">
+        <label for="cod_razao">Código - Razão Social: * <small style="font-weight:normal; color:#888;">(Mínimo 6 dígitos)</small></label>
+        <input type="text" id="cod_razao" placeholder="AAAA00 - MINHA EMPRESA LTDA" minlength="6" oninput="this.value = this.value.toUpperCase()">
     </div>
 
     <div class="form-group">
-        <label>E-mail envio termo: *</label>
-        <input type="email" id="email">
+        <label for="email">E-mail para envio do termo: *</label>
+        <input type="email" id="email" placeholder="ex: cliente@empresa.com.br">
+    </div>
+
+    <div class="form-group" style="display: flex; gap: 20px;">
+        <div style="flex: 1;">
+            <label for="data">Data para cancelamento: *</label>
+            <input type="date" id="data">
+        </div>
+        <div style="flex: 1;">
+            <label for="ciente">Cliente ciente da nova fatura? *</label>
+            <select id="ciente">
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+            </select>
+        </div>
     </div>
 
     <div class="form-group">
-        <label>Data Cancelamento: *</label>
-        <input type="date" id="data">
-    </div>
-    
-    <div class="form-group">
-        <label>Ciente Nova Fatura? *</label>
-        <select id="ciente">
-            <option value="Sim">Sim</option>
-            <option value="Não">Não</option>
-        </select>
+        <label for="descricao">Descrição da solicitação de cancelamento: *</label>
+        <textarea id="descricao" rows="3" placeholder="O que motivou o cliente a pedir cancelamento foi..."></textarea>
     </div>
 
     <div class="form-group">
-        <label>Descrição Solicitação: *</label>
-        <textarea id="descricao"></textarea>
-    </div>
-
-    <div class="form-group">
-        <label>Motivo Cancelamento: *</label>
-        <select id="motivo_cancelamento">
-            <option value="">Selecione...</option>
+        <label for="motivo_cancelamento">MOTIVO DO CANCELAMENTO (Resumido): *</label>
+        <select id="motivo_cancelamento" name="motivo_cancelamento" class="form-control">
+            <option value="">Selecione uma opção...</option>
             <option value="1">1 - CLIENTE INADIMPLENTE NA TELECHEQUE</option>
             <option value="2">2 - (T) MIGRACAO PARA OUTRO SERVICO TELECHEQUE</option>
             <option value="3">3 - (T) CLIENTE NAO CONCORDA COM RENEGOCIACAO</option>
@@ -156,171 +181,257 @@
     </div>
 
     <div class="form-group">
-        <label>Falha Renegociação: *</label>
-        <textarea id="renegociacao"></textarea>
+        <label for="renegociacao">Por que a renegociação não deu certo? *</label>
+        <textarea id="renegociacao" rows="3" placeholder="Quais foram as negativas do cliente para não aceitar a proposta de reversão..."></textarea>
     </div>
 
     <div class="form-group">
-        <label>Propostas Reversão: *</label>
-        <textarea id="propostas"></textarea>
+        <label for="propostas">Propostas para reverter o resultado? *</label>
+        <textarea id="propostas" rows="3" placeholder="Quais ações foram feitas para tentar reverter a intenção de cancelamento do contrato..."></textarea>
     </div>
 
-    <div class="form-group">
-        <label>Registro Visita (120 dias):</label>
+    <div class="form-group" style="border-top: 1px solid #eee; padding-top: 20px;">
+        <label for="upload-imagem">Registro de Visita dos ultimos 120 dias</label>
         <input type="file" id="upload-imagem" accept="image/*">
     </div>
 
-    <button id="btn-gerar" class="btn-gerar">Gerar Imagem</button>
-    <button id="btn-copiar" class="btn-copiar">Copiar</button>
-    <button id="btn-email" class="btn-email">E-mail</button>
+    <button class="btn-gerar" onclick="gerarImagem()">Gerar Imagem</button>
 
-    <div id="imagem-final-container"></div>
+    <div id="resultado-container">
+        <div id="imagem-final-container"></div>
+        
+        <div class="botoes-container">
+            <button id="btn-copiar" class="btn-acao btn-copiar" onclick="copiarImagem()">Copiar Imagem</button>
+            <button id="btn-email" class="btn-acao btn-email" onclick="prepararEmail()">Abrir E-mail e Colar</button>
+        </div>
+        
+        <div class="instrucao-copiar">
+            <strong>Dica:</strong> Clique em "Abrir E-mail" para abrir o Outlook/App e depois pressione <strong>Ctrl+V</strong>.
+        </div>
+    </div>
 </div>
 
 <div id="wrapper-oculto">
     <div id="area-para-imagem">
-        <h3 style="color:#d9534f; border-bottom:2px solid #d9534f;">Diagnóstico de Cancelamento</h3>
+        <h3 class="resumo-titulo">Diagnóstico de Cancelamento</h3>
         <table class="tabela-resumo">
-            <tr><td class="tb-label">Cód - Razão Social:</td><td class="tb-valor" id="res-cod-razao"></td></tr>
-            <tr><td class="tb-label">E-mail:</td><td class="tb-valor" id="res-email"></td></tr>
-            <tr><td class="tb-label">Data:</td><td class="tb-valor" id="res-data"></td></tr>
-            <tr><td class="tb-label">Ciente Fatura?</td><td class="tb-valor" id="res-ciente"></td></tr>
-            <tr><td class="tb-label">Descrição:</td><td class="tb-valor" id="res-descricao"></td></tr>
-            <tr><td class="tb-label" style="color:#d9534f;">MOTIVO:</td><td class="tb-valor" id="res-motivo" style="font-weight:bold;"></td></tr>
-            <tr><td class="tb-label">Falha Renegociação:</td><td class="tb-valor" id="res-renegociacao"></td></tr>
-            <tr><td class="tb-label">Propostas:</td><td class="tb-valor" id="res-propostas"></td></tr>
+            <tr>
+                <td class="tb-label">Cód - Razão Social:</td>
+                <td class="tb-valor" id="res-cod-razao"></td>
+            </tr>
+            <tr>
+                <td class="tb-label">E-mail envio termo:</td>
+                <td class="tb-valor" id="res-email"></td>
+            </tr>
+            <tr>
+                <td class="tb-label">Data Cancelamento:</td>
+                <td class="tb-valor" id="res-data"></td>
+            </tr>
+             <tr>
+                <td class="tb-label">Ciente Nova Fatura?</td>
+                <td class="tb-valor" id="res-ciente"></td>
+            </tr>
+            <tr>
+                <td class="tb-label">Descrição Solicitação:</td>
+                <td class="tb-valor" id="res-descricao"></td>
+            </tr>
+            <tr>
+                <td class="tb-label" style="color:#d9534f;">MOTIVO CANCELAMENTO:</td>
+                <td class="tb-valor" id="res-motivo" style="font-weight:bold;"></td>
+            </tr>
+            <tr>
+                <td class="tb-label">Por que renegociação falhou?</td>
+                <td class="tb-valor" id="res-renegociacao"></td>
+            </tr>
+            <tr>
+                <td class="tb-label">Propostas de Reversão:</td>
+                <td class="tb-valor" id="res-propostas"></td>
+            </tr>
         </table>
-        <div id="container-anexo" style="display:none; margin-top:20px; border-top:2px dashed #ccc; padding-top:10px; text-align:center;">
-            <strong>Registro de Visita (120 dias):</strong><br>
-            <img id="img-anexo-preview" src="" style="max-width:100%; border:1px solid #ddd; margin-top:5px;">
+        
+        <div id="container-anexo" class="container-anexo">
+            <span class="titulo-anexo">Registro de Visita (120 dias):</span>
+            <img id="img-anexo-preview" src="" alt="Imagem Anexada">
         </div>
     </div>
 </div>
 
 <script>
-    // Código Javascript Compatível com IE11 (Sem 'const', 'let', '=>')
-    var canvasGlobal = null;
+    let canvasGlobal = null;
 
-    // Máscara Código
+    // --- MÁSCARA E VALIDAÇÃO DE CÓDIGO ---
     document.getElementById('cod_razao').addEventListener('input', function(e) {
-        var v = e.target.value.toUpperCase();
-        if (v.length === 6 && v.indexOf(' - ') === -1) {
-            v = v + ' - ';
-        } else if (v.length > 6 && v.indexOf(' - ') === -1) {
-            v = v.substring(0,6) + ' - ' + v.substring(6);
+        let v = e.target.value.toUpperCase(); 
+        
+        if (e.inputType !== 'deleteContentBackward') {
+            if (v.length > 6 && !v.includes(' - ')) {
+                let codigo = v.substring(0, 6);
+                let resto = v.substring(6);
+                v = codigo + ' - ' + resto;
+            }
+            else if (v.length === 6) {
+                v = v + ' - ';
+            }
         }
+        
         e.target.value = v;
     });
 
-    // Upload
     document.getElementById('upload-imagem').addEventListener('change', function(e) {
-        var file = e.target.files[0];
+        const file = e.target.files[0];
+        const containerAnexo = document.getElementById('container-anexo');
+        const imgPreview = document.getElementById('img-anexo-preview');
+
         if (file) {
-            var reader = new FileReader();
-            reader.onload = function(evt) {
-                document.getElementById('img-anexo-preview').src = evt.target.result;
-                document.getElementById('container-anexo').style.display = 'block';
-            };
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                imgPreview.src = event.target.result;
+                containerAnexo.style.display = 'block';
+            }
             reader.readAsDataURL(file);
         } else {
-            document.getElementById('img-anexo-preview').src = "";
-            document.getElementById('container-anexo').style.display = 'none';
+            imgPreview.src = "";
+            containerAnexo.style.display = 'none';
         }
     });
 
-    // Gerar Imagem
-    document.getElementById('btn-gerar').addEventListener('click', function() {
-        var cod = document.getElementById('cod_razao');
-        var email = document.getElementById('email');
-        var data = document.getElementById('data');
-        var ciente = document.getElementById('ciente');
-        var desc = document.getElementById('descricao');
-        var motivo = document.getElementById('motivo_cancelamento');
-        var reneg = document.getElementById('renegociacao');
-        var prop = document.getElementById('propostas');
+    function validarFormulario() {
+        const idsObrigatorios = ['cod_razao', 'email', 'data', 'ciente', 'descricao', 'motivo_cancelamento', 'renegociacao', 'propostas'];
+        let formularioValido = true;
+        let primeiroCampoInvalido = null;
 
-        // Validação Simples
-        if(!cod.value || !email.value || !data.value || !desc.value || !motivo.value || !reneg.value || !prop.value) {
-            alert("Preencha todos os campos.");
-            return;
-        }
-        if(cod.value.length < 6) {
-            alert("Código deve ter 6 dígitos.");
-            return;
-        }
-        if(email.value.indexOf('@') === -1) {
-            alert("E-mail inválido.");
-            return;
-        }
+        idsObrigatorios.forEach(id => {
+            const campo = document.getElementById(id);
+            campo.classList.remove('input-erro');
+            
+            // Verificação de vazio
+            if (!campo.value || campo.value.trim() === "") {
+                formularioValido = false;
+                campo.classList.add('input-erro'); 
+                if (primeiroCampoInvalido === null) primeiroCampoInvalido = campo;
+            }
+            
+            // Verificação Específica para Código - Razão Social
+            if (id === 'cod_razao') {
+                if (campo.value.length < 6) {
+                    formularioValido = false;
+                    campo.classList.add('input-erro');
+                    if (primeiroCampoInvalido === null) primeiroCampoInvalido = campo;
+                    alert("O Código deve possuir no mínimo 6 caracteres antes do nome da empresa.");
+                    return; 
+                }
+            }
 
-        // Preencher Oculto
-        document.getElementById('res-cod-razao').innerText = cod.value.toUpperCase();
-        document.getElementById('res-email').innerText = email.value;
+            // NOVA VERIFICAÇÃO DE EMAIL
+            if (id === 'email' && campo.value.trim() !== "") {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(campo.value)) {
+                    formularioValido = false;
+                    campo.classList.add('input-erro');
+                    if (primeiroCampoInvalido === null) primeiroCampoInvalido = campo;
+                    alert("Por favor, insira um endereço de e-mail válido (ex: nome@dominio.com).");
+                    return;
+                }
+            }
+        });
+
+        if (!formularioValido && !primeiroCampoInvalido) {
+            alert("Por favor, preencha todos os campos obrigatórios.");
+            if (primeiroCampoInvalido) primeiroCampoInvalido.focus();
+        } else if (primeiroCampoInvalido) {
+             primeiroCampoInvalido.focus();
+        }
         
-        var d = data.value.split('-');
-        document.getElementById('res-data').innerText = d[2]+'/'+d[1]+'/'+d[0];
-        
-        document.getElementById('res-ciente').innerText = ciente.value;
-        document.getElementById('res-descricao').innerText = desc.value;
-        document.getElementById('res-motivo').innerText = motivo.options[motivo.selectedIndex].text;
-        document.getElementById('res-renegociacao').innerText = reneg.value;
-        document.getElementById('res-propostas').innerText = prop.value;
+        return formularioValido;
+    }
 
-        var imgContainer = document.getElementById('imagem-final-container');
-        imgContainer.style.display = 'block';
-        imgContainer.innerText = 'Gerando...';
+    function gerarImagem() {
+        if (!validarFormulario()) return;
+
+        const codRazao = document.getElementById('cod_razao').value.toUpperCase();
+        const email = document.getElementById('email').value;
+        let dataFormatada = "";
+        const dataInput = document.getElementById('data').value;
+        if(dataInput) {
+             const [ano, mes, dia] = dataInput.split('-');
+             dataFormatada = `${dia}/${mes}/${ano}`;
+        }
+        
+        document.getElementById('res-cod-razao').textContent = codRazao;
+        document.getElementById('res-email').textContent = email;
+        document.getElementById('res-data').textContent = dataFormatada;
+        document.getElementById('res-ciente').textContent = document.getElementById('ciente').value;
+        document.getElementById('res-descricao').innerText = document.getElementById('descricao').value;
+        const motivoSelect = document.getElementById('motivo_cancelamento');
+        document.getElementById('res-motivo').textContent = motivoSelect.options[motivoSelect.selectedIndex].text;
+        document.getElementById('res-renegociacao').innerText = document.getElementById('renegociacao').value;
+        document.getElementById('res-propostas').innerText = document.getElementById('propostas').value;
+
+        const resultadoContainer = document.getElementById('resultado-container');
+        const imgContainer = document.getElementById('imagem-final-container');
+        const btnCopiar = document.getElementById('btn-copiar');
+        const btnEmail = document.getElementById('btn-email');
+        
+        resultadoContainer.style.display = 'block';
+        btnCopiar.style.display = 'none'; 
+        btnEmail.style.display = 'none';
+        imgContainer.innerHTML = 'Gerando imagem de alta qualidade... aguarde.';
 
         html2canvas(document.querySelector("#area-para-imagem"), {
             scale: 2,
-            backgroundColor: "#ffffff"
-        }).then(function(canvas) {
+            backgroundColor: "#ffffff",
+            useCORS: true,
+            allowTaint: true
+        }).then(canvas => {
             canvasGlobal = canvas;
             imgContainer.innerHTML = '';
+            canvas.style.width = '100%';
+            canvas.style.height = 'auto';
             imgContainer.appendChild(canvas);
-            document.getElementById('btn-copiar').style.display = 'inline-block';
-            document.getElementById('btn-email').style.display = 'inline-block';
-            document.getElementById('btn-gerar').style.display = 'none';
+            
+            btnCopiar.style.display = 'block';
+            btnEmail.style.display = 'block'; 
+            
+            resultadoContainer.scrollIntoView({ behavior: 'smooth' });
         });
-    });
+    }
 
-    // Copiar
-    document.getElementById('btn-copiar').addEventListener('click', function() {
-        if(!canvasGlobal) return;
+    function copiarImagem() {
+        if (!canvasGlobal) return;
         canvasGlobal.toBlob(function(blob) {
             try {
-                var item = new ClipboardItem({ "image/png": blob });
-                navigator.clipboard.write([item]).then(function() {
-                    alert("Copiado! Dê Ctrl+V no e-mail.");
+                const item = new ClipboardItem({ "image/png": blob });
+                navigator.clipboard.write([item]).then(() => {
+                    const btn = document.getElementById('btn-copiar');
+                    const textoOriginal = btn.innerText;
+                    btn.innerText = "Copiado! (Ctrl+V)";
+                    btn.style.backgroundColor = "#2ecc71";
+                    setTimeout(() => { btn.innerText = textoOriginal; btn.style.backgroundColor = "#27ae60"; }, 2000);
                 });
-            } catch(e) {
-                alert("Use botão direito > Copiar.");
-            }
+            } catch (e) { alert("Use o botão direito para copiar."); }
         });
-    });
+    }
 
-    // Email
-    document.getElementById('btn-email').addEventListener('click', function() {
-        if(!canvasGlobal) { alert("Gere a imagem primeiro."); return; }
+    function prepararEmail() {
+        copiarImagem();
+        alert("Imagem copiada para a área de transferência!\n\nAgora o seu programa de e-mail será aberto. Clique no corpo da mensagem e pressione Ctrl + V para colar a imagem.");
+
+        const codRazao = document.getElementById('cod_razao').value.toUpperCase(); 
+        const motivoSelect = document.getElementById('motivo_cancelamento');
+        let motivoTexto = motivoSelect.options[motivoSelect.selectedIndex].text;
         
-        // Tenta copiar
-        canvasGlobal.toBlob(function(blob) {
-            try {
-                var item = new ClipboardItem({ "image/png": blob });
-                navigator.clipboard.write([item]);
-            } catch(e) {}
-        });
-
-        alert("Imagem copiada! O e-mail abrirá em seguida. Cole com Ctrl+V.");
-
-        var cod = document.getElementById('cod_razao').value.toUpperCase();
-        var motivo = document.getElementById('motivo_cancelamento');
-        var motivoTxt = motivo.options[motivo.selectedIndex].text;
-        var subject = "RES: DIAGNÓSTICO DE CANCELAMENTO - " + cod + " - " + motivoTxt;
-        var body = "Olá,\n\nSegue em anexo o diagnóstico de cancelamento: " + cod + "\n\nAtenciosamente,";
+        let assuntoTexto = `Diagnóstico de Cancelamento - ${codRazao} - ${motivoTexto}`;
+        const assunto = encodeURIComponent(assuntoTexto.toUpperCase());
         
-        window.location.href = "mailto:?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
-    });
+        // CORPO LIMPO SEM A FRASE DE INSTRUÇÃO
+        const corpo = encodeURIComponent(
+            "Olá,\n\n" +
+            "Segue em anexo o diagnóstico de cancelamento do cliente: " + codRazao + "\n\n" +
+            "Atenciosamente,"
+        );
 
+        window.location.href = `mailto:?subject=${assunto}&body=${corpo}`;
+    }
 </script>
 
 </body>
